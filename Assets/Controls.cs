@@ -53,6 +53,24 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Reset"",
+                    ""type"": ""Button"",
+                    ""id"": ""26760fd8-2516-4aea-821d-47e232613d17"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Next"",
+                    ""type"": ""Button"",
+                    ""id"": ""bc365727-a99a-4fca-b69e-3cb48090c690"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -121,6 +139,28 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                     ""action"": ""Music"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""474dc837-575c-4aa4-a991-e07268c6f4ee"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Reset"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4601bbf2-f3ac-4416-b9c9-985bf179f9c8"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Next"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -132,6 +172,8 @@ public partial class @Controls: IInputActionCollection2, IDisposable
         m_Game_Action = m_Game.FindAction("Action", throwIfNotFound: true);
         m_Game_Effects = m_Game.FindAction("Effects", throwIfNotFound: true);
         m_Game_Music = m_Game.FindAction("Music", throwIfNotFound: true);
+        m_Game_Reset = m_Game.FindAction("Reset", throwIfNotFound: true);
+        m_Game_Next = m_Game.FindAction("Next", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -196,6 +238,8 @@ public partial class @Controls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Game_Action;
     private readonly InputAction m_Game_Effects;
     private readonly InputAction m_Game_Music;
+    private readonly InputAction m_Game_Reset;
+    private readonly InputAction m_Game_Next;
     public struct GameActions
     {
         private @Controls m_Wrapper;
@@ -203,6 +247,8 @@ public partial class @Controls: IInputActionCollection2, IDisposable
         public InputAction @Action => m_Wrapper.m_Game_Action;
         public InputAction @Effects => m_Wrapper.m_Game_Effects;
         public InputAction @Music => m_Wrapper.m_Game_Music;
+        public InputAction @Reset => m_Wrapper.m_Game_Reset;
+        public InputAction @Next => m_Wrapper.m_Game_Next;
         public InputActionMap Get() { return m_Wrapper.m_Game; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -221,6 +267,12 @@ public partial class @Controls: IInputActionCollection2, IDisposable
             @Music.started += instance.OnMusic;
             @Music.performed += instance.OnMusic;
             @Music.canceled += instance.OnMusic;
+            @Reset.started += instance.OnReset;
+            @Reset.performed += instance.OnReset;
+            @Reset.canceled += instance.OnReset;
+            @Next.started += instance.OnNext;
+            @Next.performed += instance.OnNext;
+            @Next.canceled += instance.OnNext;
         }
 
         private void UnregisterCallbacks(IGameActions instance)
@@ -234,6 +286,12 @@ public partial class @Controls: IInputActionCollection2, IDisposable
             @Music.started -= instance.OnMusic;
             @Music.performed -= instance.OnMusic;
             @Music.canceled -= instance.OnMusic;
+            @Reset.started -= instance.OnReset;
+            @Reset.performed -= instance.OnReset;
+            @Reset.canceled -= instance.OnReset;
+            @Next.started -= instance.OnNext;
+            @Next.performed -= instance.OnNext;
+            @Next.canceled -= instance.OnNext;
         }
 
         public void RemoveCallbacks(IGameActions instance)
@@ -256,5 +314,7 @@ public partial class @Controls: IInputActionCollection2, IDisposable
         void OnAction(InputAction.CallbackContext context);
         void OnEffects(InputAction.CallbackContext context);
         void OnMusic(InputAction.CallbackContext context);
+        void OnReset(InputAction.CallbackContext context);
+        void OnNext(InputAction.CallbackContext context);
     }
 }

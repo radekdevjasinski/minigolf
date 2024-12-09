@@ -5,8 +5,10 @@ public class GolfBall : MonoBehaviour
 {
     public static GolfBall Instance;
     public Vector2 velocity; 
-    public float friction = 0.99f;
-    private CircleCollider2D ballCollider;
+    public float friction = 0.95f;
+
+
+    public CircleCollider2D ballCollider;
     public int stepsPerFrame = 10;
     public LayerMask collisionLayer; 
 
@@ -24,40 +26,63 @@ public class GolfBall : MonoBehaviour
     }
     private void Start()
     {
-        ballCollider = GetComponent<CircleCollider2D>();
         ballRadius = ballCollider.radius * transform.localScale.x;
     }
     void FixedUpdate()
     {
+        if(ballCollider.enabled == false) { return; }
+
         Vector2 movement = velocity * Time.fixedDeltaTime;
 
-        // Okreœlenie liczby kroków na podstawie prêdkoœci pi³ki
-        int steps = Mathf.Max(1, (int)(velocity.magnitude)); 
+        int steps = Mathf.Max(1, (int)velocity.magnitude); 
         float stepSize = movement.magnitude / steps; 
         for (int i = 0; i < steps; i++)
         {
             RaycastHit2D hitX = Physics2D.Raycast(transform.position, new Vector2(velocity.x, 0), ballRadius, collisionLayer);
             if (hitX.collider != null)
             {
-                velocity = new Vector2(-velocity.x, velocity.y); 
+                if (hitX.collider.isTrigger) { Goal(hitX.collider); }
+                else { velocity = new Vector2(-velocity.x, velocity.y); }
             }
 
             RaycastHit2D hitY = Physics2D.Raycast(transform.position, new Vector2(0, velocity.y), ballRadius, collisionLayer);
             if (hitY.collider != null)
             {
-                velocity = new Vector2(velocity.x, -velocity.y); 
+                if (hitY.collider.isTrigger) { Goal(hitY.collider); }
+                else { velocity = new Vector2(velocity.x, -velocity.y); }
             }
-
-       
             transform.position += (Vector3)(velocity.normalized * stepSize);
         }
 
+        if(velocity.magnitude >= Game.Instance.minWindVel)
+        {
+            velocity += Game.Instance.windForce;
+        }
+        velocity += ElevationForce();
         velocity *= friction;
 
         if (velocity.magnitude < 0.05f)
         {
             velocity = Vector2.zero;
         }
+    }
+    private Vector2 ElevationForce()
+    {
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, ballRadius);
+
+        foreach (var collider in colliders)
+        {
+            if (collider.CompareTag("Elevation"))
+            {
+                Elevation elevation = collider.gameObject.GetComponent<Elevation>();
+                if(elevation != null)
+                {
+                    Debug.Log("pchanie");
+                    return elevation.forceDir * elevation.elevationForce;
+                }
+            }
+        }
+        return Vector2.zero;
     }
     public void SetVelocity(Vector2 stroke)
     {
@@ -68,4 +93,16 @@ public class GolfBall : MonoBehaviour
 
         velocity = new Vector2(Mathf.Cos(angleInRadians), Mathf.Sin(angleInRadians)) * force;
     }
+    void Goal(Collider2D collider)
+    {
+        if(collider.CompareTag("Goal"))
+        {
+            velocity = Vector2.zero;
+            transform.position = collider.transform.position;
+            //Game.Instance.MoveToNextLevel(true);
+            ballCollider.enabled = false;
+            UIAnimator.Instance.PlayLevelChange();
+        }    
+    }
+
 }

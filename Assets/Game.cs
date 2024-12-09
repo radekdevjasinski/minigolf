@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 
 public class Game : MonoBehaviour
 {
@@ -16,17 +17,30 @@ public class Game : MonoBehaviour
     [Header("UI")]
     public GameObject line;
     public TMP_Text powerBar;
+    public TMP_Text holeText;
+    public TMP_Text parText;
+    public TMP_Text strokeText;
+    public GameObject windPanel;
+    public GameObject windLine;
+    public TMP_Text windText;
 
     [Header("Game")]
-    public float rotation;
-    public float rotationSpeed;
-    public float power;
-    public float powerSpeed;
+    [SerializeField] private float rotationSpeed;
+    [SerializeField] private float powerSpeed;
+    private float rotation;
+    private float power;
+    public Vector2 windForce;
+    public float minWindVel;
+
+    private int hole = 1;
+    private int stroke = 1;
 
     [Header("Controls")]
     public Controls controls;
     private InputAction action;
     private InputAction effects;
+    private InputAction next;
+    private InputAction reset;
     public class Stroke
     {
         public float rotation;
@@ -53,17 +67,40 @@ public class Game : MonoBehaviour
         }
     }
     public List<Stroke> strokes;
-
+    public static Game Instance;
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+        }
         controls = new Controls();
     }
-    void Start()
+    public void Reset()
     {
         strokes = new();
         state = GameState.DIRECTION;
         rotation = 0;
         power = 0;
+        stroke = 1;
+        LevelController.Instance.activeLevel.FitCamera();
+        GolfBall.Instance.transform.position = LevelController.Instance.activeLevel.ballStartingPos;
+        GolfBall.Instance.ballCollider.enabled = true;
+        Goal.Instance.transform.position = LevelController.Instance.activeLevel.goalPos;
+        if(LevelController.Instance.activeLevel.hasWind)
+        {
+            windForce = GenerateRandomWind();
+        }
+        else
+        {
+            windForce = Vector2.zero;
+
+        }
+        UpdateUI();
     }
     private void OnEnable()
     {
@@ -74,12 +111,24 @@ public class Game : MonoBehaviour
         effects = controls.Game.Effects;
         effects.Enable();
         effects.performed += Effects;
+
+        next = controls.Game.Next;
+        next.Enable();
+        next.performed += NextKey;
+
+        reset = controls.Game.Reset;
+        reset.Enable();
+        reset.performed += ResetKey;
     }
     private void OnDisable()
     {
         action.Disable();
 
         effects.Disable();
+
+        next.Disable();
+
+        reset.Disable();
     }
     void Update()
     {
@@ -95,9 +144,6 @@ public class Game : MonoBehaviour
                 RotateDirection();
                 break;
 
-
-
-
             case GameState.POWER:
                 power += Time.deltaTime * powerSpeed;
                 if (power >= 50)
@@ -109,14 +155,19 @@ public class Game : MonoBehaviour
 
                 break;
 
-
-
             case GameState.WAIT:
-                if (GolfBall.Instance.velocity.magnitude == 0)
+                if (GolfBall.Instance.velocity.magnitude == 0 && GolfBall.Instance.ballCollider.enabled)
                 {
+                    stroke++;
                     state = GameState.DIRECTION;
-                    rotation = 0;
-                    power = 0;
+                    //rotation = 0;
+                    //power = 0;
+                    if(stroke > LevelController.Instance.activeLevel.par)
+                    {
+                        UIAnimator.Instance.PlayLose();
+                        //MoveToNextLevel(false);
+                    }
+                    UpdateUI();
                 }
                 break;
             default:
@@ -168,4 +219,71 @@ public class Game : MonoBehaviour
     {
 
     }
+    private void NextKey(InputAction.CallbackContext context)
+    {
+        //MoveToNextLevel(true);
+        UIAnimator.Instance.PlayLevelChange();
+    }
+    private void ResetKey(InputAction.CallbackContext context)
+    {
+        LevelController.Instance.FirstLevel();
+        hole = 1;
+        Reset();
+    }
+    void UpdateUI()
+    {
+            holeText.text = "hole " + hole;
+            parText.text = "par " + LevelController.Instance.activeLevel.par;
+            strokeText.text = "stroke " + stroke;
+
+            if(LevelController.Instance.activeLevel.hasWind)
+            {
+                windPanel.SetActive(true);
+                windText.text = (windForce.magnitude * 100).ToString("F0") + " mph";
+                float angle = Mathf.Atan2(windForce.y, windForce.x) * Mathf.Rad2Deg;
+                windLine.transform.rotation = Quaternion.Euler(0, 0, angle);
+
+            }
+            else
+            {
+               windPanel.SetActive(false);
+            }
+    }
+    public void MoveToNextLevel(bool win)
+    {
+        if(win)
+        {
+            LevelController.Instance.NextLevel();
+            hole++;
+        }
+        else
+        {
+            LevelController.Instance.LoseLevel();
+            //hole = 1;
+        }
+        Reset();
+        
+    }
+    private Vector2 GenerateRandomWind()
+    {
+        Vector2[] directions = new Vector2[]
+        {
+            new Vector2(0, 1),   // N
+            new Vector2(1, 1),   // NE
+            new Vector2(1, 0),   // E
+            new Vector2(1, -1),  // SE
+            new Vector2(0, -1),  // S
+            new Vector2(-1, -1), // SW
+            new Vector2(-1, 0),  // W
+            new Vector2(-1, 1)   // NW
+        };
+
+        int randomIndex = Random.Range(0, directions.Length);
+        Vector2 randomDirection = directions[randomIndex];
+
+        float randomStrength = Random.Range(0.01f, 0.1f);
+
+        return randomDirection.normalized * randomStrength;
+    }
+
 }

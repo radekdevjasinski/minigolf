@@ -77,7 +77,6 @@ public class GolfBall : MonoBehaviour
                 Elevation elevation = collider.gameObject.GetComponent<Elevation>();
                 if(elevation != null)
                 {
-                    Debug.Log("pchanie");
                     return elevation.forceDir * elevation.elevationForce;
                 }
             }
